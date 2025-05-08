@@ -1,1 +1,1 @@
-This repository contains code used to perform the analysis for xyz. 
+This repository contains code used to perform the analysis for "Prospective Evaluation of Biomarker Risk Stratification using Capsule Sponge in the Surveillance of Barrett’s Oesophagus: Results from UK Real-world Implementation Studies". 
