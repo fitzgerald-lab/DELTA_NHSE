@@ -18,7 +18,7 @@ library(conover.test)
 library(epitools)
 library(scales)
 library(patchwork)
-setwd("/Users/somers01/OneDrive - University of Cambridge/ECI_local/OptimalScreening/Git/")
+setwd("/Users/somers01/OneDrive - University of Cambridge/ECI_local/DELTA/Git/")
 grid.draw.ggsurvplot <- function(x){
   survminer:::print.ggsurvplot(x, newpage = FALSE)
 }
@@ -46,14 +46,16 @@ progression_colours <- c(
 three_scale_v3 <- c(
     "OAC" =  "#51004f",
     "HGD, IMC" = "#8856a7",
-    "HGD" = "#9070a5", 
+    #"HGD" = "#9070a5", 
+    "HGD"= "#c19fd7", # alternative HGD for presentation barplot
     "IMC" = "#8856a7",
     "HGD, IMC, OAC" = "#8856a7",
     "LGD" = "#8c96c6",
-    "LGD/Crypt dysplasia" = "#8c96c6",
+    "LGD, Crypt dysplasia" = "#8c96c6",
     "Crypt dysplasia" = "#e7d9ff",
     "IND" = "#a6dff0",
     "BE" = "#e3e6e9",
+    "NDBO" = "#e3e6e9",
     "0" = "#c8c9c7", 
     "1" = "#a5149a", #ffd700",
     "2" = "#e693dc",
@@ -73,7 +75,7 @@ three_scale_v3 <- c(
 )
 progression_colours <- three_scale_v3
 df <- fread(
-    "/Users/somers01/OneDrive - University of Cambridge/ECI_local/OptimalScreening/Git/Data/DELTA_NHSE_910_7May2025.csv", 
+    "Data/DELTA_NHSE_910_7May2025.csv", 
     na.strings = "", 
     stringsAsFactors = FALSE
 )
@@ -198,43 +200,6 @@ GetTimeToEvent <- function(
     time_to_E0Sponge <- as.numeric((baseline - endo0)*const)
     gen_hist <- NA
     time_to_gen_hist <- NA
-
-    # time to general histopathology ###########################################
-    # if(Histopathology_endo1 == "IND"){
-    #     stop_crit <- c(
-    #         "NDBE",
-    #         "BE", 
-    #         "Crypt dysplasia", 
-    #         "HGD", 
-    #         "IMC", 
-    #         "OAC", 
-    #         "LGD"
-    #     )
-    #     for(i in seq_along(events[-1])){
-    #         if(events[i+1] %in% stop_crit){
-    #             gen_hist <- events[i+1]
-    #             date_gen_hist <- as.Date(times[i+1], format = "%d/%m/%Y")
-    #             time_to_gen_hist <- as.numeric(date_gen_hist - baseline)*const
-    #             break
-    #         }
-    #     }
-    # }else{
-    #     gen_hist <- Histopathology_endo1 
-    #     date_gen_hist <- as.Date(Date_endo1, format = "%d/%m/%Y")
-    #     time_to_gen_hist <- as.numeric((date_gen_hist - baseline)*const)
-    # }
-    # if(is.na(gen_hist)){ # if no event occurs, get time as last endoscopy 
-    #     last_endo_index <- max(which(!is.na(times)))
-    #     date_gen_hist <- as.Date(times[last_endo_index], format="%d/%m/%Y")
-    #     time_to_gen_hist <- as.numeric((date_gen_hist - baseline)*const)
-    #     gen_hist <- events[last_endo_index]
-    # }
-    # if(gen_hist %in% outcomes){
-    #     event <- 1
-    # }else{
-    #     event <- 0
-    # }
-    # time_to <- time_to_gen_hist
 
     #time to first diagnosis of dysplaisa ############################################
 
@@ -430,62 +395,116 @@ for(risk in unique(df$Sponge_risk_strat)){
     new_id_df <- rbind(new_id_df, new_rows)
 }
 df <- new_id_df
-#fwrite(df, "Data/DELTA_working_df.csv")
+#fwrite. df, "Data/DELTA_working_df.csv")
 #write_csv(df, "/home/somers01/OptimalScreening/Data/DELTA_df_tim.csv")
 # ================= Data Cleanup for Sharing =============================
 # run all the above code first 
 df_clean <- df
 df_clean$P53 <- toupper(df$P53) 
+remove <- c(
+  "DGH/TRC", "duplicate-exclude", "Cyted: IM", 
+  "Cyted: TFF3", "V27"
+)
+df_clean <- df_clean[, !(colnames(df_clean) %in% remove)]
 cleanup_colnames <- c(
     "Site", "DELTA_ID", "Co_consented",
     "Age", "Sex", "Date_sponge",
     "Pot_number", "CYT_ID", "Date_endo0",
     "Date_endo1", "Histopathology_endo1", "Date_endo2",
     "Histopathology_endo2", "Date_endo3", "Histopathology_endo3",
-    "Date_endo4", "Histopathology_endo4", "Sponge_risk_strat",
+    "Date_endo4", "Histopathology_endo4", "Sponge_risk_strat", "Dutch_risk_strat",
     "Comments", "Prague_C0", "Prague_M0",
     "Atypia", "P53", "AI_calls",
     "AI_comments", "Clinical_risk_strat", "BSG_risk_strat",
     "Biomarker_status", "Final_histopathology", "Resolved_histopathology",
-    "time_endo0_to_sponge", "time_sponge_to_resolved", "event",
-    "SurvStrat", "SurvStratAnyAtypia", "Any_dysplasia",
-    "time_endo0_to_endo1", "time_sponge_to_endo1", "Risk_strat_ID"
+    "Surv_strat", "Surv_strat_any_atypia", "Any_dysplasia",
+    "Time_endo0_to_endo1", "Time_sponge_to_endo1", "Risk_strat_ID",
+    "Time_endo0_to_sponge", "Time_sponge_to_resolved", "Event"
 )
 colnames(df_clean) <- cleanup_colnames
 cleanup_colorder <- c(
     "Site", "DELTA_ID", "Co_consented",
-    "Age", "Sex", "Date_sponge",
-    "Pot_number", "CYT_ID", "Date_endo0",
-    "Date_endo1", "Histopathology_endo1", "Date_endo2",
+    "Age", "Sex", "Pot_number", "CYT_ID", 
+    "Date_sponge","Date_endo0", "Date_endo1", 
+    "Histopathology_endo1", "Date_endo2",
     "Histopathology_endo2", "Date_endo3", "Histopathology_endo3",
-    "Date_endo4", "Histopathology_endo4", "Sponge_risk_strat",
-    "Clinical_risk_strat", "BSG_risk_strat",
-    "Comments", "Prague_C0", "Prague_M0",
-    "Atypia", "P53", "Final_histopathology", 
+    "Date_endo4", "Histopathology_endo4", "Prague_C0", "Prague_M0",
+    "Atypia", "P53", "Sponge_risk_strat",
+    "Clinical_risk_strat", "Comments", "Final_histopathology", 
     "Resolved_histopathology", "Biomarker_status", 
-    "time_endo0_to_sponge", "time_endo0_to_endo1", "time_sponge_to_endo1", 
-    "time_sponge_to_resolved", "event",
-    "SurvStrat", "SurvStratAnyAtypia", "Any_dysplasia",
+    "Time_endo0_to_sponge", "Time_endo0_to_endo1", "Time_sponge_to_endo1", 
+    "Time_sponge_to_resolved", "Event",
+    "Surv_strat", "Surv_strat_any_atypia", "Any_dysplasia",
     "Risk_strat_ID", "AI_calls", "AI_comments"
 )
-df_clean[, cleanup_colorder]
+df_clean <- df_clean[cleanup_colorder]
 SeparateCoConsent <- function(Co_consented, ...){
     joined <- toupper(Co_consented)
     split <- strsplit(joined, " ")[[1]]
-    AHM <- NA 
-    BEST <- NA
+    if(is.na(joined)){
+      AHM <- "Missing"
+      BEST <- "Missing"
+    }else if(trimws(joined) == "NO"){
+      AHM <- NA 
+      BEST <- NA
+    }else{
+      AHM <- "Missing"
+      BEST <- "Missing"
+    }
+   
     for(string in split){
         string <- gsub("(?<=AHM)\\s", "", string, perl=T)
         if(grepl("AHM|AD", string)){
-            AHM <- trimws(string)
+          AHM <- trimws(string)
         }else if(grepl("BEST", string)){
-            BEST <- trimws(string)
-        } 
+          BEST <- trimws(string)
+        }
     }
     tibble::tibble(AHM, BEST)
 }
-pmap_dfr(df_clean, SeparateCoConsent) %>% bind_cols(., df) %>% View
-fwrite(df_clean, "Data/DELTA_NHSE_clean.csv", na = "")
+df_clean <- pmap_dfr(df_clean, SeparateCoConsent) %>% bind_cols(., df_clean)
+reorder_col <- c(
+  "Site", "DELTA_ID", "Co_consented", "AHM", "BEST",
+  "Age", "Sex", "Pot_number", "CYT_ID", 
+  "Date_sponge","Date_endo0", "Date_endo1", 
+  "Histopathology_endo1", "Date_endo2",
+  "Histopathology_endo2", "Date_endo3", "Histopathology_endo3",
+  "Date_endo4", "Histopathology_endo4", "Prague_C0", "Prague_M0",
+  "Atypia", "P53", "Sponge_risk_strat",
+  "Clinical_risk_strat", "Comments", "Final_histopathology", 
+  "Resolved_histopathology", "Biomarker_status", 
+  "Time_endo0_to_sponge", "Time_endo0_to_endo1", "Time_sponge_to_endo1", 
+  "Time_sponge_to_resolved", "Event",
+  "Surv_strat", "Surv_strat_any_atypia", "Any_dysplasia",
+  "Risk_strat_ID", "AI_calls", "AI_comments"
+)
+df_clean <- df_clean[reorder_col]
+
+ConvertMissing <- function(col){
+  sapply(col, function(x){ifelse(is.na(x), "Missing", x)})
+}
+df_clean$Date_endo0 <- ConvertMissing(df_clean$Date_endo0)
+df_clean$Pot_number <- ConvertMissing(df_clean$Pot_number)
+df_clean$CYT_ID <- ConvertMissing(df_clean$CYT_ID)
+df_clean$Histopathology_endo1 <- ConvertMissing(df_clean$Histopathology_endo1)
+df_clean$AI_calls <- sapply(df_clean$AI_calls, function(x){ifelse(x == "#N/A", NA, toupper(x))})
+df_clean$AI_comments <- sapply(df_clean$AI_comments, function(x){ifelse(x %in% c("#N/A", 0), NA, x)})
+df_clean$Time_endo0_to_endo1 <- ConvertMissing(df_clean$Time_endo0_to_endo1)
+df_clean$Time_endo0_to_sponge <- ConvertMissing(df_clean$Time_endo0_to_sponge) 
+df_clean$Sex <- ConvertMissing(df_clean$Sex)
+df_clean$Age <- ConvertMissing(df_clean$Age)
+df_clean$Site <- ConvertMissing(df_clean$Site)
+df_clean$Co_consented <- sapply(df_clean$Co_consented, function(x){
+    if(is.na(x)){
+      return("Missing")
+    }else if(gsub(" ", "", toupper(x)) == "NO"){
+      return("No")
+    }else{
+      return("Yes")
+    }
+  }
+)
+fwrite(df_clean, "Data/DELTA_NHSE_clean.csv", na = "NA")
 # ================= Rate Calculations ====================================
 GetRates <- function(df, primary=FALSE){
     if(primary){
@@ -726,34 +745,35 @@ spec <- pred_ndbe/n_ndbe
 prop.test(pred_ndbe, n_ndbe)
 
 bar_df <- df 
-bar_df$new_hist <- sapply(bar_df$Histopathology_endo1, function(x){
-    if(x %in% c("HGD", "IMC")){
-        return("HGD, IMC")
+bar_df$new_hist <- sapply(bar_df$General_histopathology, function(x){
+#    if(x %in% c("HGD", "IMC")){ # this if else is for paper barplot 
+#        return("HGD, IMC")
+#    }else{
+#       return(x)
+#    }
+    if (x %in% c("LGD", "Crypt dysplasia")){
+      return("LGD, Crypt dysplasia")
     }else{
-        return(x)
+      return(x)
     }
 })
 bar_1 <- bar_df %>% group_by(new_hist, Sponge_risk_strat) %>% count %>% rename(risk_strat = Sponge_risk_strat)
 bar_1 <- bar_1 %>% 
     group_by(risk_strat) %>% 
     mutate(risk_strat_label = paste0(risk_strat, "\n n=", sum(n))) 
-bar_1$Strat <- "Capsule Sponge & Clinical Risk Groups"
+bar_1$Strat <- "Capsule Sponge & \nClinical Risk Groups"
 bar_2 <- bar_df %>% group_by(new_hist, Clin_risk_strat) %>% count %>% rename(risk_strat = Clin_risk_strat)
 bar_2 <- bar_2 %>% 
     group_by(risk_strat) %>% 
     mutate(risk_strat_label = paste0(risk_strat, "\n n=", sum(n))) 
 bar_2$Strat <- "Clinical Risk Groups"
-bar_3 <- bar_df %>% group_by(new_hist, BSG_risk_strat) %>% count %>% rename(risk_strat = BSG_risk_strat)
-bar_3 <- bar_3 %>% 
-    group_by(risk_strat) %>% 
-    mutate(risk_strat_label = paste0(risk_strat, "\n n=", sum(n))) 
-bar_3$Strat <- "BSG Stratification"
+
 barplot_df <- rbind(bar_1, bar_2)
-barplot_df$Histopathology_endo1 <- barplot_df$new_hist %>% factor(levels = c(
+barplot_df$General_histopathology <- barplot_df$new_hist %>% factor(levels = c(
         "BE", 
         "IND",
         "Crypt dysplasia",
-        "LGD/Crypt dysplasia",  
+        "LGD, Crypt dysplasia",  
         "LGD", 
         "HGD",
         "HGD, IMC",
@@ -766,41 +786,42 @@ barplot_df$risk_strat <- barplot_df$risk_strat %>% factor(levels = c(
     "Moderate risk", 
     "High risk"
 ))
-barplot_df$risk_strat_label <- barplot_df$risk_strat_label %>% factor(levels = c(
-    c(unique(barplot_df$risk_strat_label)[-1], unique(barplot_df$risk_strat_label[1]))
-))
-bars <- ggplot(aes(x = risk_strat_label, fill = Histopathology_endo1, y = n), data = barplot_df) + 
+# barplot_df$risk_strat_label <- barplot_df$risk_strat_label %>% factor(levels = c(. # alternative factoring for whatever works
+#     c(unique(barplot_df$risk_strat_label)[-1], unique(barplot_df$risk_strat_label[1]))
+# ))
+barplot_df$risk_strat_label <- barplot_df$risk_strat_label %>% factor(levels = barplot_df$risk_strat_label %>% unique)
+bars <- ggplot(aes(x = risk_strat_label, fill = General_histopathology, y = n), data = barplot_df) + 
     theme_minimal() + 
     geom_bar(position="stack", stat="identity") + 
     scale_fill_manual(name = "Histopathology at \npost-sponge endoscopy", values = progression_colours, labels = c(
-        "OAC", 
-        "HGD, IMC", 
-        "LGD",
-        "Crypt dysplasia", 
-        "Indefinite", 
+        "OAC",
+        "IMC",
+        "HGD",
+        "LGD, Crypt dysplasia",
+        "IND",
         "NDBO"
     )) +
-    facet_grid(~Strat %>% factor(levels = c("Clinical Risk Groups", "Capsule Sponge & Clinical Risk Groups")), scales = "free", space = "free")+ 
+    facet_grid(~Strat %>% factor(levels = c("Clinical Risk Groups", "Capsule Sponge & \nClinical Risk Groups")), scales = "free", space = "free")+ 
     ylab("Number of patients") + 
     xlab("Risk Groups") + 
     theme(
-        axis.title.y = element_text(size = 16), 
+        axis.title.y = element_text(size = 25), 
         axis.title.x = element_blank(),
-        axis.text = element_text(size = 16), 
-        strip.text = element_text(size = 16), 
-        legend.text = element_text(size = 19), 
-        legend.title = element_text(size = 20), 
+        axis.text = element_text(size = 25), 
+        strip.text = element_text(size = 25), 
+        legend.text = element_text(size = 25), 
+        legend.title = element_text(size = 23), 
         panel.spacing = unit(6, "lines")) 
 print(bars) 
-ggsave("Plots/demographic_barplots_stack_rev2.pdf", bars, dpi = 600, width = 15, height = 9.6)
-#================= Sankey Diagram ==============================================
+ggsave("Plots/Poster/pres_barplots.jpg", bars, dpi = 600, width = 16, height = 9.6)
+#================= Figure 3A - Alluvial ==============================================
 sankey_df <- data.frame()
 clin_status <- unique(df$Clin_risk_strat) %>% factor(
     levels = c("Moderate risk", "Low risk")
 )
 biomark_status <- unique(df$Biomark_status)
 sponge_status <- unique(df$Sponge_risk_strat)
-final_status <- unique(df$Histopathology_endo1)
+final_status <- unique(df$General_histopathology)
 
 for(clin in clin_status){
     for(biomark in biomark_status){
@@ -823,7 +844,7 @@ for(clin in clin_status){
                     df$Clin_risk_strat == clin & 
                     df$Biomark_status == biomark & 
                     df$Sponge_risk_strat == sponge & 
-                    df$Histopathology_endo1 == final
+                    df$General_histopathology == final
                 )
                 if(final %in% c("HGD", "IMC", "OAC")){
                     final <- "HGD, IMC, OAC"
@@ -867,32 +888,6 @@ sankey_df$Post.Sponge.Endoscopy <- sankey_df$Post.Sponge.Endoscopy %>% factor(le
     "HGD, IMC, OAC"
 ) %>% rev)
 sankey_df$Freq <- as.numeric(sankey_df$Freq)
-
-ggplot( data = sankey_df, 
-        aes(
-            axis1 = Clinical.Risk.Group, 
-            axis2 = Biomarker.Status, 
-            axis3 = Sponge.Risk.Group, 
-            axis4 = Post.Sponge.Endoscopy, 
-            y = Freq))+
-    theme_minimal() +
-    scale_x_discrete(
-        limits = c(
-            "Clinical Risk", 
-            "Biomarker Status", 
-            "Sponge Risk", 
-            "Histopathology at Post-sponge Endoscopy") %>% str_wrap(width=15),
-            expand = c(.2, .05)
-    ) +
-    geom_flow(aes(fill=Highlight)) + 
-    geom_stratum(aes(fill = after_stat(stratum)), color=alpha("black", 0.3))+ 
-    geom_text(
-        stat = "stratum", 
-        aes(label = str_wrap(after_stat(stratum), width = 8)), 
-        size = 3
-    ) + 
-    scale_fill_manual(values = progression_colours) + 
-    ylab("Number of Patients")
 
 #initialise lode-form data frame
 lode_df <- to_lodes_form(sankey_df, axes=1:4)
@@ -996,7 +991,7 @@ lode_plot <- ggplot(
             "  ", 
             "HGD, IMC, OAC", 
             "LGD, Crypt dysplasia", 
-            "Indefinite", 
+            "IND", 
             "NDBO"
         ),
         values = progression_colours)+
@@ -1017,7 +1012,7 @@ lode_plot <- ggplot(
     ylab("Number of patients")
 print(lode_plot)
 ggsave("Plots/Lode_plot_alt_col_rev2.pdf", lode_plot, dpi=600, width=12.7, height=9.6)
-#================= Patient Timelines ===========================================
+#================= Suppl Figure 1 - Patient Timelines ===========================================
 tl_subset <- df %>% filter(Any_dysplasia == "T")
 #tl_subset <- df %>% filter(Final_histopathology %in% c("HGD", "IMC", "LGD", "OAC", "IND", "Crypt dysplasia"))
 BlowUp <- function(
@@ -1273,9 +1268,16 @@ timeline_plot <- lr_plot + mr_plot + hr_plot
 plot(timeline_plot)
 ggsave("Plots/dysplasia_timelines_any_dys_rev2.pdf", timeline_plot, dpi = 600, width=12.7, height=9.6)
 
-#================= Survival Analysis ===========================================
+#================= Figure 4A - Kaplan Meier ===========================================
 KM <- survfit(Surv(time_to, event) ~ SurvStrat, data = df)
 cox <- coxph(Surv(time_to, event) ~ SurvStrat, data = df) # full cox regression 
+
+df$Sponge_risk_strat <- df$Sponge_risk_strat %>% factor(levels = c(
+  "Low risk", 
+  "Moderate risk", 
+  "High risk"
+))
+KM <- survfit(Surv(time_to, event) ~ Sponge_risk_strat, data = df)
 
 KM_to_e1 <- survfit(Surv(time_to_spongeE1, rep(1, 910)) ~ SurvStrat, data = df)
 df$endo_event <- 1
@@ -1284,59 +1286,57 @@ KM_to_e1<- survfit(Surv(time_to_spongeE1, endo_event)~SurvStrat, data =df)
 progression_colours <- c(
     "Low risk" = "#525252", 
     "Moderate risk" = "#57d35b", 
-    "High risk" = "#18a96d", 
+    "High risk" = "#a5149a", 
     "High Confidence Positive" = "#a5149a",#8365c8"
     "Low Confidence Positive" = "#e693dc" #c453ba", 
 )
 survp <- ggsurvplot(
-        KM_to_e1,
+        KM,
         data = df,
-        conf.int = FALSE,
+        conf.int = TRUE,
         ggtheme = theme_bw(),
          legend.labs=c(
             "Low risk",
             "Moderate risk",
-            "High risk tier 2", 
-            "High risk tier 1"
+            "High risk"
         ),
-        palette = c( progression_colours[["Low risk"]], progression_colours[["Moderate risk"]], progression_colours[["Low Confidence Positive"]], progression_colours[["High Confidence Positive"]]), 
+        palette = c( progression_colours[["Low risk"]], progression_colours[["Moderate risk"]], progression_colours[["High risk"]]), 
         risk.table= "nrisk_cumcensor", 
         pval=TRUE,
         pval.coord = c(-1,-0.05), 
         pval.method.coord = c(5,0),
         log.rank.weights = "n",
-        ylab = "Proportion without endoscopy", #"Proportion without a diagnosis of dysplasia", # Proportion with endoscopy", 
+        ylab = "Proportion without a diagnosis of dysplaisa", #"Proportion without a diagnosis of dysplasia", # Proportion with endoscopy", 
         xlab = "Months", 
         xlim = c(-1,36), 
         ylim = c(-0.05, 1),
         break.x.by= 12, 
-        fontsize=20,
+        fontsize=25, #20,
         tables.y.text.col =F,
-        risk.table.fontsize=8
+        risk.table.fontsize=9, #8
 ) 
 survp$plot <- survp$plot+
     #scale_y_continuous(labels = c("1", "0.75", "0.5", "0.25", "0")) + # modifies y-axis to be [1,0] rather than [0,1]
     theme(
         legend.title=element_blank(), 
-        legend.text=element_text(size =18), 
-        axis.text =element_text(size=20), 
-        axis.title = element_text(size = 20))
+        legend.text=element_text(size =23), 
+        axis.text =element_text(size=23), 
+        axis.title = element_text(size = 25))
 survp$table <- survp$table + 
     scale_y_discrete(
         labels = c(
             "Low risk", 
             "Moderate risk",
-            "High risk tier 2", 
-            "High risk tier 1"
+            "High risk"
         ) %>%rev,
         position="left"
     ) + 
     theme(
-        axis.title.x=element_text(size=18), 
+        axis.title.x=element_text(size=25), 
         axis.title.y =element_blank(), 
-        axis.text.x = element_text(size=20),
-        axis.text.y = element_text(size=18),
-        plot.title = element_text(size = 18)
+        axis.text.x = element_text(size=23),
+        axis.text.y = element_text(size=23),
+        plot.title = element_text(size = 23)
     )
 layout <- c(
   area(t = 0, l = 0, b = 20, r = 15), # left plot, starts at the top of the page (0) and goes 30 units down and 3 units to the right
@@ -1344,7 +1344,7 @@ layout <- c(
 )
 surv_plot <- survp$plot/survp$table + plot_layout(design=layout)
 print(surv_plot)
-ggsave("Plots/survplot_toendo1_rev2.pdf", surv_plot, dpi=600, height = 12.7, width = 16)
+ggsave("Plots/Poster/KM.jpg", surv_plot, dpi=600, height = 12.7, width = 16)
 
 # generate combined forest plot 
 dysplasia <- c("Crypt dysplasia", "HGD", "LGD", "OAC", "IMC")
@@ -1370,7 +1370,7 @@ forest_df$Group <- c(
 )
 colnames(forest_df) <- c("RR", "ci_low", "ci_high", "pval", "adj_pval", "Group")
 forest_df <- forest_df %>% mutate(
-                            annotation = paste0(format(RR, nsmall=1), " ", "(", format(ci_low, nsmall=1), ", ", format(ci_high, nsmall=1), ")")) 
+                            annotation = paste0(format(RR, nsmall=1), " ", "(", format(ci_low, nsmall=1, trim=T), ", ", format(ci_high, nsmall=1), ")")) 
 
 # plot portion 
 forest_df$Group <- forest_df$Group %>% factor(
@@ -1391,10 +1391,10 @@ forest_df$annotation <- forest_df$annotation %>% factor(
 forest_df <- forest_df[-4,]
 p <- ggplot(aes(y = Group), data = forest_df) + 
         theme_minimal() + 
-        geom_point(aes(x = log(RR) ), shape = 15, size = 8)+
-        geom_linerange(aes(xmin = log(ci_low), xmax = log(ci_high)), linewidth = 2.5) + 
-        geom_vline(xintercept = log(1), linetype = "dashed") + 
-        labs(x = "Log Relative Risk") + 
+        geom_point(aes(x = log(RR, 2) ), shape = 15, size = 8)+
+        geom_linerange(aes(xmin = log(ci_low, 2), xmax = log(ci_high, 2)), linewidth = 2.5) + 
+        geom_vline(xintercept = log(1, 2), linetype = "dashed") + 
+        labs(x = expression(Log[2]*" Relative Risk")) + 
         theme(
             axis.line.y = element_blank(), 
             axis.text.y = element_blank(), 
@@ -1410,7 +1410,7 @@ forest_df <- rbind(
         Group = "Risk Stratification", 
         pval = "p-value", 
         adj_pval = "Adjusted p-value",
-        annotation = "Relative Risk of Any Dysplasia (95% CI)" %>% str_wrap(width = 22)), forest_df
+        annotation = "Relative Risk of HGD or cancer (95% CI)" %>% str_wrap(width = 22)), forest_df
 ) 
 forest_df$Group <- forest_df$Group %>% factor(
     levels = c(
@@ -1447,7 +1447,7 @@ layout <- c(
 )
 forest_plot <- p_left + p + plot_layout(design = layout)
 print(forest_plot)
-ggsave("Plots/forest_plot_RR_rev2.pdf", forest_plot, dpi = 600, width = 13, height = 4) 
+ggsave("Plots/forest_plot_log2_HGD.pdf", forest_plot, dpi = 600, width = 13, height = 4) 
 
 names = c(
     paste0("Low risk \n (n = ", sum(df$SurvStrat == "Low risk"), ")"), 
